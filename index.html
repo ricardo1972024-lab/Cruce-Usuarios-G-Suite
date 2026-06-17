@@ -485,6 +485,7 @@
       <div class="toolbar">
         <input type="text" class="search-box" id="searchBox-normal" placeholder="Buscar por cédula, nombre o correo...">
         <label class="toggle"><input type="checkbox" id="toggleInactive30-normal"> Solo +30 días sin conexión</label>
+        <label class="toggle"><input type="checkbox" id="toggleLicensedInactive-normal"> Con licencia · +30 días sin conexión</label>
         <button class="btn-clear" id="clearFiltersBtn-normal">Limpiar filtros</button>
         <button class="btn-export" id="exportBtn-normal">Exportar a Excel</button>
       </div>
@@ -517,6 +518,7 @@
       <div class="toolbar">
         <input type="text" class="search-box" id="searchBox-generic" placeholder="Buscar por correo o cargo...">
         <label class="toggle"><input type="checkbox" id="toggleInactive30-generic"> Solo +30 días sin conexión</label>
+        <label class="toggle"><input type="checkbox" id="toggleLicensedInactive-generic"> Con licencia · +30 días sin conexión</label>
         <button class="btn-clear" id="clearFiltersBtn-generic">Limpiar filtros</button>
         <button class="btn-export" id="exportBtn-generic">Exportar a Excel</button>
       </div>
@@ -561,8 +563,8 @@ const state = {
   activeTab: 'normal',
   todayRef: new Date(),  // fecha de referencia para "días sin conexión"
   panels: {
-    normal:  { rows: [], filterCategory: null, search: '', onlyInactive30: false },
-    generic: { rows: [], filterCategory: null, search: '', onlyInactive30: false }
+    normal:  { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false },
+    generic: { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false }
   }
 };
 
@@ -912,6 +914,7 @@ function renderStamps(panelKey){
 function rowMatchesFilters(panelState, r){
   if(panelState.filterCategory && r.categoria !== panelState.filterCategory) return false;
   if(panelState.onlyInactive30 && !(r.dias !== null && r.dias !== undefined && r.dias > 30)) return false;
+  if(panelState.onlyLicensedInactive30 && !(r.tieneLicencia && r.dias !== null && r.dias !== undefined && r.dias > 30)) return false;
   if(panelState.search){
     const q = panelState.search.toLowerCase();
     const hay = `${r.cedula||''} ${r.nombre||''} ${r.correo||''} ${r.cargo||''}`.toLowerCase();
@@ -1059,13 +1062,15 @@ document.getElementById('processBtn').addEventListener('click', (e) => {
 
   try{
     const result = buildCruce();
-    state.panels.normal  = { rows: result.normal,  filterCategory: null, search: '', onlyInactive30: false };
-    state.panels.generic = { rows: result.generic, filterCategory: null, search: '', onlyInactive30: false };
+    state.panels.normal  = { rows: result.normal,  filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
+    state.panels.generic = { rows: result.generic, filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
 
     document.getElementById('searchBox-normal').value = '';
     document.getElementById('searchBox-generic').value = '';
     document.getElementById('toggleInactive30-normal').checked = false;
     document.getElementById('toggleInactive30-generic').checked = false;
+    document.getElementById('toggleLicensedInactive-normal').checked = false;
+    document.getElementById('toggleLicensedInactive-generic').checked = false;
 
     document.getElementById('results').classList.add('show');
     document.getElementById('resultsMetaGlobal').textContent =
@@ -1090,12 +1095,18 @@ document.getElementById('processBtn').addEventListener('click', (e) => {
     state.panels[key].onlyInactive30 = e.target.checked;
     renderTable(key);
   });
+  document.getElementById(`toggleLicensedInactive-${suffix}`).addEventListener('change', (e) => {
+    state.panels[key].onlyLicensedInactive30 = e.target.checked;
+    renderTable(key);
+  });
   document.getElementById(`clearFiltersBtn-${suffix}`).addEventListener('click', () => {
     state.panels[key].filterCategory = null;
     state.panels[key].search = '';
     state.panels[key].onlyInactive30 = false;
+    state.panels[key].onlyLicensedInactive30 = false;
     document.getElementById(`searchBox-${suffix}`).value = '';
     document.getElementById(`toggleInactive30-${suffix}`).checked = false;
+    document.getElementById(`toggleLicensedInactive-${suffix}`).checked = false;
     renderAll();
   });
   document.getElementById(`exportBtn-${suffix}`).addEventListener('click', () => exportExcel(key));
