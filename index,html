@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cruce de Accesos · Huevos Kikes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15242A;
+    --paper:#E9EAE2;
+    --paper-raised:#F4F4ED;
+    --yolk:#E8A23A;
+    --yolk-deep:#C77F1F;
+    --risk:#BD4332;
+    --ok:#5C7A52;
+    --warn:#9C7A33;
+    --line:#C9CABD;
+    --muted:#5B6058;
+    --white:#FFFFFF;
+    --radius:2px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:0 24px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  header.top{
+    padding:36px 0 28px;
+    border-bottom:3px solid var(--ink);
+    margin-bottom:36px;
+  }
+  .plate{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--white);
+    background:var(--ink);
+    padding:5px 10px;
+    border-radius:1px;
+  }
+  .plate b{color:var(--yolk);}
+  h1.title{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:900;
+    font-stretch:condensed;
+    font-size:clamp(34px,5.4vw,62px);
+    line-height:1.02;
+    margin:14px 0 10px;
+    letter-spacing:.005em;
+  }
+  p.subtitle{
+    max-width:640px;
+    color:var(--muted);
+    font-size:15px;
+    margin:0;
+  }
+  .privacy-note{
+    margin-top:16px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ok);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .privacy-note .dot{
+    width:7px;height:7px;border-radius:50%;background:var(--ok);
+    box-shadow:0 0 0 3px rgba(92,122,82,.18);
+    flex-shrink:0;
+  }
+
+  /* ---------- Upload section ---------- */
+  section.upload{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-bottom:24px;
+  }
+  @media (max-width:720px){
+    section.upload{grid-template-columns:1fr;}
+  }
+
+  .slot{
+    position:relative;
+    background:var(--paper-raised);
+    border:2px dashed var(--line);
+    border-radius:var(--radius);
+    padding:26px 22px 22px;
+    transition:border-color .15s ease, background .15s ease;
+    cursor:pointer;
+  }
+  .slot:hover{border-color:var(--ink);}
+  .slot.dragover{border-color:var(--yolk-deep); background:#F8EFDC;}
+  .slot.loaded{border-style:solid; border-color:var(--ok); background:#EEF2EA;}
+  .slot input[type=file]{display:none;}
+
+  .slot-step{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.12em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .slot-name{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:700;
+    font-size:23px;
+    margin:4px 0 6px;
+  }
+  .slot-hint{
+    font-size:13px;
+    color:var(--muted);
+  }
+  .slot-file{
+    margin-top:14px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--ink);
+    word-break:break-all;
+    display:none;
+    align-items:center;
+    gap:8px;
+  }
+  .slot.loaded .slot-file{display:flex;}
+  .slot.loaded .slot-hint{display:none;}
+  .check{
+    width:16px;height:16px;border-radius:50%;
+    background:var(--ok);
+    flex-shrink:0;
+    position:relative;
+  }
+  .check::after{
+    content:'';
+    position:absolute;left:4px;top:2px;
+    width:5px;height:8px;
+    border-right:2px solid #fff;
+    border-bottom:2px solid #fff;
+    transform:rotate(40deg);
+  }
+
+  /* ---------- Action ---------- */
+  .action-row{
+    display:flex;
+    justify-content:center;
+    margin:8px 0 44px;
+  }
+  button#processBtn{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:800;
+    font-size:20px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--white);
+    background:var(--ink);
+    border:none;
+    padding:16px 46px;
+    border-radius:1px;
+    cursor:pointer;
+    position:relative;
+    transition:transform .08s ease, background .15s ease;
+  }
+  button#processBtn:disabled{
+    background:#B7B9AC;
+    cursor:not-allowed;
+  }
+  button#processBtn:not(:disabled):hover{background:var(--yolk-deep);}
+  button#processBtn.stamping{transform:scale(.93) rotate(-1deg);}
+  @media (prefers-reduced-motion: reduce){
+    button#processBtn.stamping{transform:none;}
+  }
+
+  /* ---------- Error banner ---------- */
+  .error-banner{
+    display:none;
+    background:#F7E4DE;
+    border:2px solid var(--risk);
+    color:#7A2A1C;
+    padding:14px 18px;
+    border-radius:var(--radius);
+    font-size:13.5px;
+    margin-bottom:24px;
+  }
+  .error-banner.show{display:block;}
+
+  /* ---------- Results area ---------- */
+  #results{display:none;}
+  #results.show{display:block;}
+
+  .results-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .results-head h2{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:800;
+    font-size:26px;
+    margin:0;
+  }
+  .results-meta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  /* ---------- Stamps (summary cards / filters) ---------- */
+  .stamps{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:30px;
+  }
+  @media (max-width:920px){.stamps{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:480px){.stamps{grid-template-columns:1fr;}}
+
+  .stamp{
+    border:2px solid var(--c, var(--ink));
+    border-radius:3px;
+    padding:14px 14px 12px;
+    background:var(--paper-raised);
+    cursor:pointer;
+    text-align:left;
+    transform:rotate(-0.6deg);
+    position:relative;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .stamp:nth-child(2n){transform:rotate(0.6deg);}
+  .stamp:hover{transform:rotate(0deg) translateY(-2px);}
+  .stamp.active{
+    box-shadow:0 0 0 3px rgba(0,0,0,0.06) inset;
+    background:var(--white);
+  }
+  .stamp::before{
+    content:'';
+    position:absolute; inset:4px;
+    border:1px solid var(--c, var(--ink));
+    border-radius:2px;
+    opacity:.55;
+    pointer-events:none;
+  }
+  .stamp .n{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:900;
+    font-size:34px;
+    color:var(--c, var(--ink));
+    line-height:1;
+  }
+  .stamp .lbl{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+    margin-top:4px;
+    color:var(--ink);
+  }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  input#searchBox{
+    flex:1;
+    min-width:220px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    padding:10px 12px;
+    border:2px solid var(--line);
+    border-radius:2px;
+    background:var(--white);
+    color:var(--ink);
+  }
+  input#searchBox:focus{outline:none; border-color:var(--ink);}
+  label.toggle{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink);
+    cursor:pointer;
+    user-select:none;
+  }
+  button#exportBtn, button#clearFiltersBtn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:10px 16px;
+    border:2px solid var(--ink);
+    background:var(--white);
+    color:var(--ink);
+    border-radius:2px;
+    cursor:pointer;
+    transition:background .12s ease, color .12s ease;
+    white-space:nowrap;
+  }
+  button#exportBtn{background:var(--ink); color:var(--white);}
+  button#exportBtn:hover{background:var(--yolk-deep); border-color:var(--yolk-deep);}
+  button#clearFiltersBtn:hover{background:var(--ink); color:var(--white);}
+
+  /* ---------- Table ---------- */
+  .table-scroll{
+    overflow-x:auto;
+    border:2px solid var(--ink);
+    border-radius:2px;
+  }
+  table#dataTable{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    min-width:1180px;
+  }
+  table#dataTable th{
+    position:sticky; top:0;
+    background:var(--ink);
+    color:var(--white);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:500;
+    font-size:11px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    text-align:left;
+    padding:10px 12px;
+    white-space:nowrap;
+  }
+  table#dataTable td{
+    padding:9px 12px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+    white-space:nowrap;
+  }
+  table#dataTable td.mono{font-family:'IBM Plex Mono', monospace; font-size:12.5px;}
+  table#dataTable tr:hover td{background:#F2F1E7;}
+  table#dataTable td:first-child, table#dataTable th:first-child{
+    position:sticky; left:0;
+    background:var(--paper-raised);
+  }
+  table#dataTable th:first-child{background:var(--ink);}
+
+  .badge{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:2px;
+    border:1.5px solid var(--c, var(--ink));
+    color:var(--c, var(--ink));
+    white-space:nowrap;
+  }
+  .badge.solid{background:var(--c, var(--ink)); color:#fff;}
+  .flag-inactive{
+    display:inline-block;
+    margin-left:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--warn);
+  }
+
+  .empty-state{
+    padding:60px 20px;
+    text-align:center;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+  }
+
+  footer.bottom{
+    margin-top:50px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <span class="plate">Huevos <b>Kikes</b> · TI / Sistemas</span>
+    <h1 class="title">Cruce de Accesos<br>Nómina × Google Workspace</h1>
+    <p class="subtitle">Carga el reporte mensual de empleados y el reporte de usuarios de la consola de Google. La herramienta cruza ambos por cédula y marca los casos que necesitas revisar: retirados con acceso vigente, activos sin licencia, cuentas suspendidas que aún cuestan, y más.</p>
+    <div class="privacy-note"><span class="dot"></span> Todo el cruce se procesa en este navegador. Ningún archivo se sube a un servidor.</div>
+  </header>
+
+  <section class="upload">
+    <div class="slot" id="slotEmpleados" tabindex="0">
+      <input type="file" id="fileEmpleados" accept=".xlsx">
+      <div class="slot-step">Paso 01</div>
+      <div class="slot-name">Base de Empleados</div>
+      <div class="slot-hint">Arrastra aquí el .xlsx de Novasoft, o haz clic para elegirlo.</div>
+      <div class="slot-file"><span class="check"></span><span class="slot-file-text"></span></div>
+    </div>
+    <div class="slot" id="slotGoogle" tabindex="0">
+      <input type="file" id="fileGoogle" accept=".csv">
+      <div class="slot-step">Paso 02</div>
+      <div class="slot-name">Reporte Google Workspace</div>
+      <div class="slot-hint">Arrastra aquí el .csv descargado de la consola, o haz clic para elegirlo.</div>
+      <div class="slot-file"><span class="check"></span><span class="slot-file-text"></span></div>
+    </div>
+  </section>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="action-row">
+    <button id="processBtn" disabled>Procesar cruce</button>
+  </div>
+
+  <div id="results">
+    <div class="results-head">
+      <h2>Resultado del cruce</h2>
+      <div class="results-meta" id="resultsMeta"></div>
+    </div>
+
+    <div class="stamps" id="stampsRow"></div>
+
+    <div class="toolbar">
+      <input type="text" id="searchBox" placeholder="Buscar por cédula, nombre o correo...">
+      <label class="toggle"><input type="checkbox" id="toggleInactive30"> Solo +30 días sin conexión</label>
+      <button id="clearFiltersBtn">Limpiar filtros</button>
+      <button id="exportBtn">Exportar a Excel</button>
+    </div>
+
+    <div class="table-scroll">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Cédula</th>
+            <th>Nombre</th>
+            <th>Estado contrato</th>
+            <th>Cargo</th>
+            <th>Ubicación</th>
+            <th>Fecha retiro</th>
+            <th>Correo Google</th>
+            <th>Estado Google</th>
+            <th>Licencia</th>
+            <th>Última conexión</th>
+            <th>Categoría</th>
+          </tr>
+        </thead>
+        <tbody id="dataTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="bottom">
+    <span>Cruce de Accesos — herramienta interna de TI</span>
+    <span id="footerStamp">SIN PROCESAR</span>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+/* =========================================================
+   ESTADO GLOBAL
+   ========================================================= */
+const state = {
+  empleadosFile: null,
+  googleFile: null,
+  empleadosRows: null,   // filas crudas del xlsx
+  googleRows: null,      // filas crudas del csv
+  processed: [],         // resultado del cruce
+  filterCategory: null,  // null = todas
+  search: '',
+  onlyInactive30: false,
+  todayRef: new Date()   // fecha de referencia para "días sin conexión"
+};
+
+/* =========================================================
+   DEFINICIÓN DE CATEGORÍAS (orden = severidad)
+   ========================================================= */
+const CATS = {
+  RETIRADO_ACTIVO:   { label: 'Retirado con acceso activo',     color: '#BD4332' },
+  SUSPENDIDO_LIC:     { label: 'Suspendido con licencia',        color: '#9C7A33' },
+  ACTIVO_SIN_LIC:     { label: 'Activo sin licencia',            color: '#9C7A33' },
+  ACTIVO_SIN_CUENTA:  { label: 'Activo sin cuenta en Google',    color: '#BD4332' },
+  NO_ENCONTRADO:      { label: 'No encontrado en base',          color: '#9C7A33' },
+  GENERICA:           { label: 'Cuenta genérica · revisar',      color: '#5B6058' },
+  EN_ORDEN:           { label: 'En orden',                       color: '#5C7A52' },
+};
+
+/* =========================================================
+   HELPERS DE NORMALIZACIÓN
+   ========================================================= */
+function normId(raw){
+  if(raw === null || raw === undefined) return '';
+  let s = String(raw).trim();
+  if(s === '') return '';
+  s = s.replace(/\.0+$/,'');         // artefacto de número flotante "123.0"
+  s = s.replace(/[^0-9]/g,'');       // solo dígitos
+  s = s.replace(/^0+(?=\d)/,'');     // quitar ceros a la izquierda
+  return s;
+}
+
+function cleanStr(v){
+  if(v === null || v === undefined) return '';
+  return String(v).trim();
+}
+
+function excelSerialToDate(v){
+  if(v === null || v === undefined || v === '') return null;
+  if(v instanceof Date) return isNaN(v) ? null : v;
+  if(typeof v === 'number'){
+    const ms = Math.round((v - 25569) * 86400 * 1000);
+    const d = new Date(ms);
+    return isNaN(d) ? null : d;
+  }
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
+}
+
+function formatDate(d){
+  if(!d) return '—';
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yy = d.getUTCFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
+// "Last Sign In" de Google viene en hora local (no UTC), se parsea con new Date() normal
+function parseGoogleDateTime(v){
+  const s = cleanStr(v);
+  if(s === '' ) return null;
+  if(/never logged in/i.test(s)) return 'NUNCA';
+  // formato: AAAA/MM/DD HH:MM:SS
+  const m = s.match(/^(\d{4})\/(\d{2})\/(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if(m){
+    return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+const GENERIC_RE = /^(administrador|administracion|practicante|auxiliar|analista|coordinador|coordinadora|capacitacion|prueba|inspector|auditoria|aprendiz|asesor|supervisor|seleccion|atraccion|desarrollo|celular|sala|despacho|tat\d|tat\.|almacen|foodservice|operador|biomasa)/i;
+
+function isGenericAccount(row){
+  const cc = cleanStr(row['Cost Center']);
+  if(cc !== '') return true;
+  const local = cleanStr(row['Email Address [Required]']).split('@')[0];
+  return GENERIC_RE.test(local);
+}
+
+/* =========================================================
+   CARGA DE ARCHIVOS
+   ========================================================= */
+function readEmpleadosFile(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try{
+        const wb = XLSX.read(e.target.result, { type:'array', cellDates:true });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+        resolve(rows);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo .xlsx'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function readGoogleFile(file){
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header:true,
+      skipEmptyLines:true,
+      complete: (res) => resolve(res.data),
+      error: (err) => reject(err)
+    });
+  });
+}
+
+function showError(msg){
+  const el = document.getElementById('errorBanner');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearError(){
+  document.getElementById('errorBanner').classList.remove('show');
+}
+
+function markSlotLoaded(slotId, fileName){
+  const slot = document.getElementById(slotId);
+  slot.classList.add('loaded');
+  slot.querySelector('.slot-file-text').textContent = fileName;
+}
+
+function updateProcessButton(){
+  document.getElementById('processBtn').disabled = !(state.empleadosRows && state.googleRows);
+}
+
+/* drag & drop + click wiring */
+function wireSlot(slotId, inputId, kind){
+  const slot = document.getElementById(slotId);
+  const input = document.getElementById(inputId);
+
+  slot.addEventListener('click', () => input.click());
+  slot.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') input.click(); });
+
+  ['dragenter','dragover'].forEach(evt => slot.addEventListener(evt, (e)=>{
+    e.preventDefault(); slot.classList.add('dragover');
+  }));
+  ['dragleave','drop'].forEach(evt => slot.addEventListener(evt, (e)=>{
+    e.preventDefault(); slot.classList.remove('dragover');
+  }));
+  slot.addEventListener('drop', (e) => {
+    const f = e.dataTransfer.files[0];
+    if(f) handleFile(kind, f);
+  });
+  input.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if(f) handleFile(kind, f);
+  });
+}
+
+async function handleFile(kind, file){
+  clearError();
+  try{
+    if(kind === 'empleados'){
+      if(!/\.xlsx$/i.test(file.name)) throw new Error('La base de empleados debe ser un archivo .xlsx');
+      const rows = await readEmpleadosFile(file);
+      if(rows.length === 0 || !('doc_empleado' in rows[0])){
+        throw new Error('No encontré la columna "doc_empleado" en este archivo. Verifica que sea la consulta de empleados de Novasoft.');
+      }
+      state.empleadosRows = rows;
+      markSlotLoaded('slotEmpleados', file.name);
+    } else {
+      if(!/\.csv$/i.test(file.name)) throw new Error('El reporte de Google debe ser un archivo .csv');
+      const rows = await readGoogleFile(file);
+      if(rows.length === 0 || !('Email Address [Required]' in rows[0])){
+        throw new Error('No encontré la columna "Email Address [Required]" en este archivo. Verifica que sea el export de usuarios de la consola de Google.');
+      }
+      state.googleRows = rows;
+      markSlotLoaded('slotGoogle', file.name);
+    }
+  }catch(err){
+    showError(err.message || String(err));
+  }
+  updateProcessButton();
+}
+
+/* =========================================================
+   LÓGICA DE CRUCE
+   ========================================================= */
+function buildEmpleadosMap(rows){
+  const map = new Map();
+  rows.forEach(r => {
+    const id = normId(r['doc_empleado']);
+    if(id === '') return;
+    const estado = cleanStr(r['estado_contrato']);
+    const esActivo = /^activo/i.test(estado);
+    const entry = map.get(id);
+    if(!entry){
+      map.set(id, {
+        id,
+        nombre: `${cleanStr(r['nombre'])} ${cleanStr(r['apellidos'])}`.trim(),
+        cargo: cleanStr(r['nombre_cargo']),
+        ubicacion: cleanStr(r['nombre_ubicacion']),
+        estadoActivo: esActivo,
+        fechaRetiro: excelSerialToDate(r['fecha_retiro']),
+        contratos: 1
+      });
+    } else {
+      entry.contratos += 1;
+      if(esActivo){
+        // si CUALQUIER contrato está activo, la persona se considera activa
+        entry.estadoActivo = true;
+        entry.cargo = cleanStr(r['nombre_cargo']) || entry.cargo;
+        entry.ubicacion = cleanStr(r['nombre_ubicacion']) || entry.ubicacion;
+        entry.fechaRetiro = null;
+      } else if(!entry.estadoActivo){
+        // ambos retirados: nos quedamos con la fecha de retiro más reciente
+        const fr = excelSerialToDate(r['fecha_retiro']);
+        if(fr && (!entry.fechaRetiro || fr > entry.fechaRetiro)) entry.fechaRetiro = fr;
+      }
+    }
+  });
+  return map;
+}
+
+function diasSinConexion(lastSignIn, ref){
+  if(lastSignIn === 'NUNCA') return Infinity;
+  if(!lastSignIn) return null;
+  const ms = ref - lastSignIn;
+  return Math.floor(ms / 86400000);
+}
+
+function runCruce(){
+  const empMap = buildEmpleadosMap(state.empleadosRows);
+  const claimed = new Set();
+  const out = [];
+  const ref = state.todayRef;
+
+  state.googleRows.forEach(g => {
+    const correo = cleanStr(g['Email Address [Required]']);
+    if(correo === '') return;
+    const nombreGoogle = `${cleanStr(g['First Name [Required]'])} ${cleanStr(g['Last Name [Required]'])}`.trim();
+    const statusGoogle = cleanStr(g['Status [READ ONLY]']);
+    const tieneLicencia = cleanStr(g['Licenses [READ ONLY]']) !== '';
+    const lastSignIn = parseGoogleDateTime(g['Last Sign In [READ ONLY]']);
+    const dias = diasSinConexion(lastSignIn, ref);
+
+    const base = {
+      cedula: '', nombre: nombreGoogle, estado: '—', cargo:'', ubicacion:'',
+      fechaRetiro: null, correo, statusGoogle, tieneLicencia,
+      lastSignIn, dias, categoria: null
+    };
+
+    if(isGenericAccount(g)){
+      base.categoria = 'GENERICA';
+      out.push(base);
+      return;
+    }
+
+    const id = normId(g['Employee ID']);
+    const emp = id !== '' ? empMap.get(id) : undefined;
+
+    if(!emp){
+      base.cedula = id;
+      base.categoria = 'NO_ENCONTRADO';
+      out.push(base);
+      return;
+    }
+
+    claimed.add(id);
+    base.cedula = emp.id;
+    base.nombre = emp.nombre || nombreGoogle;
+    base.estado = emp.estadoActivo ? 'Activo' : 'Retirado';
+    base.cargo = emp.cargo;
+    base.ubicacion = emp.ubicacion;
+    base.fechaRetiro = emp.fechaRetiro;
+
+    if(!emp.estadoActivo && (statusGoogle === 'Active' || tieneLicencia)){
+      base.categoria = 'RETIRADO_ACTIVO';
+    } else if(!emp.estadoActivo){
+      base.categoria = 'EN_ORDEN'; // retirado, ya sin acceso ni licencia
+    } else if(statusGoogle === 'Suspended' && tieneLicencia){
+      base.categoria = 'SUSPENDIDO_LIC';
+    } else if(!tieneLicencia){
+      base.categoria = 'ACTIVO_SIN_LIC';
+    } else {
+      base.categoria = 'EN_ORDEN';
+    }
+    out.push(base);
+  });
+
+  // empleados activos que no aparecieron en ninguna cuenta de Google
+  empMap.forEach((emp, id) => {
+    if(claimed.has(id)) return;
+    if(!emp.estadoActivo) return; // retirado sin cuenta = correcto, no se reporta como fila aparte
+    out.push({
+      cedula: id, nombre: emp.nombre, estado:'Activo', cargo: emp.cargo,
+      ubicacion: emp.ubicacion, fechaRetiro: null, correo:'—', statusGoogle:'—',
+      tieneLicencia:false, lastSignIn:null, dias:null, categoria:'ACTIVO_SIN_CUENTA'
+    });
+  });
+
+  return out;
+}
+
+/* =========================================================
+   RENDER: STAMPS DE RESUMEN
+   ========================================================= */
+function renderStamps(rows){
+  const counts = {};
+  Object.keys(CATS).forEach(k => counts[k] = 0);
+  rows.forEach(r => counts[r.categoria]++);
+
+  const wrap = document.getElementById('stampsRow');
+  wrap.innerHTML = '';
+  Object.entries(CATS).forEach(([key, def]) => {
+    const div = document.createElement('button');
+    div.type = 'button';
+    div.className = 'stamp' + (state.filterCategory === key ? ' active' : '');
+    div.style.setProperty('--c', def.color);
+    div.innerHTML = `<div class="n">${counts[key]}</div><div class="lbl">${def.label}</div>`;
+    div.addEventListener('click', () => {
+      state.filterCategory = (state.filterCategory === key) ? null : key;
+      renderAll();
+    });
+    wrap.appendChild(div);
+  });
+}
+
+/* =========================================================
+   RENDER: TABLA
+   ========================================================= */
+function rowMatchesFilters(r){
+  if(state.filterCategory && r.categoria !== state.filterCategory) return false;
+  if(state.onlyInactive30 && !(r.dias !== null && r.dias > 30)) return false;
+  if(state.search){
+    const q = state.search.toLowerCase();
+    const hay = `${r.cedula} ${r.nombre} ${r.correo}`.toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function formatLastSignIn(r){
+  if(r.lastSignIn === 'NUNCA') return 'Nunca';
+  if(!r.lastSignIn) return '—';
+  const d = r.lastSignIn;
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+function renderTable(){
+  const tbody = document.getElementById('dataTableBody');
+  const visible = state.processed.filter(rowMatchesFilters);
+
+  if(visible.length === 0){
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">Sin resultados para este filtro.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = visible.map(r => {
+      const def = CATS[r.categoria];
+      const inactiveFlag = (r.dias !== null && r.dias !== undefined && r.dias > 30)
+        ? `<span class="flag-inactive">⏱ ${r.dias === Infinity ? 'nunca conectado' : r.dias + 'd sin conexión'}</span>` : '';
+      return `<tr>
+        <td class="mono">${r.cedula || '—'}</td>
+        <td>${escapeHtml(r.nombre) || '—'}</td>
+        <td>${r.estado}</td>
+        <td>${escapeHtml(r.cargo) || '—'}</td>
+        <td>${escapeHtml(r.ubicacion) || '—'}</td>
+        <td class="mono">${formatDate(r.fechaRetiro)}</td>
+        <td class="mono">${escapeHtml(r.correo)}</td>
+        <td>${r.statusGoogle}</td>
+        <td>${r.tieneLicencia ? 'Sí' : 'No'}</td>
+        <td class="mono">${formatLastSignIn(r)}${inactiveFlag}</td>
+        <td><span class="badge solid" style="--c:${def.color}">${def.label}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('resultsMeta').textContent =
+    `${visible.length} de ${state.processed.length} registros`;
+}
+
+function escapeHtml(s){
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderAll(){
+  renderStamps(state.processed);
+  renderTable();
+}
+
+/* =========================================================
+   EXPORTAR A EXCEL
+   ========================================================= */
+function exportExcel(){
+  const visible = state.processed.filter(rowMatchesFilters);
+  const data = visible.map(r => ({
+    'Cédula': r.cedula,
+    'Nombre': r.nombre,
+    'Estado contrato': r.estado,
+    'Cargo': r.cargo,
+    'Ubicación': r.ubicacion,
+    'Fecha retiro': r.fechaRetiro ? formatDate(r.fechaRetiro) : '',
+    'Correo Google': r.correo,
+    'Estado Google': r.statusGoogle,
+    'Licencia': r.tieneLicencia ? 'Sí' : 'No',
+    'Última conexión': formatLastSignIn(r),
+    'Días sin conexión': r.dias === Infinity ? 'Nunca' : (r.dias ?? ''),
+    'Categoría': CATS[r.categoria].label
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Cruce de accesos');
+  const today = new Date();
+  const stamp = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb, `cruce_accesos_kikes_${stamp}.xlsx`);
+}
+
+/* =========================================================
+   EVENTOS GENERALES
+   ========================================================= */
+wireSlot('slotEmpleados', 'fileEmpleados', 'empleados');
+wireSlot('slotGoogle', 'fileGoogle', 'google');
+
+document.getElementById('processBtn').addEventListener('click', (e) => {
+  clearError();
+  const btn = e.currentTarget;
+  btn.classList.add('stamping');
+  setTimeout(() => btn.classList.remove('stamping'), 160);
+
+  try{
+    state.processed = runCruce();
+    state.filterCategory = null;
+    state.search = '';
+    state.onlyInactive30 = false;
+    document.getElementById('searchBox').value = '';
+    document.getElementById('toggleInactive30').checked = false;
+    document.getElementById('results').classList.add('show');
+    document.getElementById('footerStamp').textContent = `PROCESADO · ${state.processed.length} REGISTROS`;
+    renderAll();
+    document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+  }catch(err){
+    showError('Ocurrió un error procesando el cruce: ' + (err.message || err));
+  }
+});
+
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  state.search = e.target.value;
+  renderTable();
+});
+document.getElementById('toggleInactive30').addEventListener('change', (e) => {
+  state.onlyInactive30 = e.target.checked;
+  renderTable();
+});
+document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+  state.filterCategory = null;
+  state.search = '';
+  state.onlyInactive30 = false;
+  document.getElementById('searchBox').value = '';
+  document.getElementById('toggleInactive30').checked = false;
+  renderAll();
+});
+document.getElementById('exportBtn').addEventListener('click', exportExcel);
+</script>
+</body>
+</html>
