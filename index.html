@@ -576,7 +576,7 @@ const CATS_NORMAL = {
   SUSPENDIDO_LIC:    { label: 'Suspendido con licencia',        color: '#9C7A33' },
   ACTIVO_SIN_LIC:    { label: 'Activo sin licencia',            color: '#9C7A33' },
   ACTIVO_SIN_CUENTA: { label: 'Activo sin cuenta en Google',    color: '#BD4332' },
-  NO_ENCONTRADO:     { label: 'No encontrado en base',          color: '#9C7A33' },
+  SIN_IDENTIFICACION:{ label: 'Sin identificación · revisar',  color: '#6B6F76' },
   EN_ORDEN:          { label: 'En orden',                       color: '#5C7A52' },
 };
 
@@ -837,11 +837,25 @@ function buildCruce(){
     };
 
     const id = normId(g['Employee ID']);
-    const emp = id !== '' ? empMap.get(id) : undefined;
+
+    if(id === ''){
+      // sin ninguna cédula: no hay forma de confirmar si alguna vez fue empleado
+      base.cedula = '';
+      base.estado = '—';
+      base.categoria = 'SIN_IDENTIFICACION';
+      normal.push(base);
+      return;
+    }
+
+    const emp = empMap.get(id);
 
     if(!emp){
+      // tiene cédula pero no está en la base. La base cubre el 100% de la
+      // nómina, así que esto significa que ya no es empleado (equivalente
+      // a un retirado), aunque no sabemos cargo, ubicación ni fecha exacta.
       base.cedula = id;
-      base.categoria = 'NO_ENCONTRADO';
+      base.estado = 'No está en nómina';
+      base.categoria = (statusGoogle === 'Active' || tieneLicencia) ? 'RETIRADO_ACTIVO' : 'EN_ORDEN';
       normal.push(base);
       return;
     }
