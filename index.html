@@ -235,6 +235,19 @@
   }
   @media (max-width:480px){.stamps{grid-template-columns:1fr;}}
 
+  .stamp-group{ margin-bottom:22px; }
+  .stamp-group:last-child{ margin-bottom:0; }
+  .stamp-group-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    padding-bottom:6px;
+    margin-bottom:12px;
+    border-bottom:1px solid var(--line);
+  }
+
   /* ---------- Tabs ---------- */
   .tabs{
     display:flex;
@@ -482,7 +495,7 @@
     </div>
 
     <div class="panel active" id="panel-normal">
-      <div class="stamps" id="stampsRow-normal"></div>
+      <div id="stampsRow-normal"></div>
       <div class="toolbar">
         <input type="text" class="search-box" id="searchBox-normal" placeholder="Buscar por cédula, nombre o correo...">
         <label class="toggle"><input type="checkbox" id="toggleInactive30-normal"> Solo +30 días sin conexión</label>
@@ -573,13 +586,18 @@ const state = {
    DEFINICIÓN DE CATEGORÍAS
    ========================================================= */
 const CATS_NORMAL = {
-  RETIRADO_ACTIVO:         { label: 'Retirado con cuenta activa',       color: '#BD4332' },
-  RETIRADO_SUSPENDIDO_LIC: { label: 'Retirado suspendido con licencia', color: '#9C7A33' },
-  SUSPENDIDO_LIC:          { label: 'Suspendido con licencia',          color: '#9C7A33' },
-  ACTIVO_SIN_LIC:          { label: 'Activo sin licencia',              color: '#9C7A33' },
-  ACTIVO_SIN_CUENTA:       { label: 'Activo sin cuenta en Google',      color: '#BD4332' },
-  SIN_IDENTIFICACION:      { label: 'Sin identificación · revisar',     color: '#6B6F76' },
-  EN_ORDEN:                { label: 'En orden',                        color: '#5C7A52' },
+  RETIRADO_ACTIVO:         { label: 'Retirado con cuenta activa',       color: '#BD4332', group: 'sin_registro' },
+  RETIRADO_SUSPENDIDO_LIC: { label: 'Retirado suspendido con licencia', color: '#9C7A33', group: 'sin_registro' },
+  SUSPENDIDO_LIC:          { label: 'Suspendido con licencia',          color: '#9C7A33', group: 'con_registro' },
+  ACTIVO_SIN_LIC:          { label: 'Activo sin licencia',              color: '#9C7A33', group: 'con_registro' },
+  ACTIVO_SIN_CUENTA:       { label: 'Activo sin cuenta en Google',      color: '#BD4332', group: 'con_registro' },
+  SIN_IDENTIFICACION:      { label: 'Sin identificación · revisar',     color: '#6B6F76', group: 'con_registro' },
+  EN_ORDEN:                { label: 'En orden',                        color: '#5C7A52', group: 'con_registro' },
+};
+
+const GROUP_TITLES = {
+  sin_registro: 'Empleados sin registro en nómina',
+  con_registro: 'Empleado con registro en nómina'
 };
 
 const CATS_GENERIC = {
@@ -916,6 +934,20 @@ function buildCruce(){
 /* =========================================================
    RENDER: STAMPS DE RESUMEN
    ========================================================= */
+function buildStampButton(panelKey, key, def, count){
+  const panelState = state.panels[panelKey];
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'stamp' + (panelState.filterCategory === key ? ' active' : '');
+  btn.style.setProperty('--c', def.color);
+  btn.innerHTML = `<div class="n">${count}</div><div class="lbl">${def.label}</div>`;
+  btn.addEventListener('click', () => {
+    panelState.filterCategory = (panelState.filterCategory === key) ? null : key;
+    renderAll();
+  });
+  return btn;
+}
+
 function renderStamps(panelKey){
   const cfg = PANELS[panelKey];
   const panelState = state.panels[panelKey];
@@ -925,17 +957,40 @@ function renderStamps(panelKey){
 
   const wrap = document.getElementById(`stampsRow-${cfg.suffix}`);
   wrap.innerHTML = '';
-  Object.entries(cfg.cats).forEach(([key, def]) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'stamp' + (panelState.filterCategory === key ? ' active' : '');
-    btn.style.setProperty('--c', def.color);
-    btn.innerHTML = `<div class="n">${counts[key]}</div><div class="lbl">${def.label}</div>`;
-    btn.addEventListener('click', () => {
-      panelState.filterCategory = (panelState.filterCategory === key) ? null : key;
-      renderAll();
+
+  const hasGroups = Object.values(cfg.cats).some(def => def.group);
+
+  if(!hasGroups){
+    Object.entries(cfg.cats).forEach(([key, def]) => {
+      wrap.appendChild(buildStampButton(panelKey, key, def, counts[key]));
     });
-    wrap.appendChild(btn);
+    return;
+  }
+
+  // agrupar categorías por su 'group', conservando el orden de aparición
+  const groups = [];
+  const groupIndex = {};
+  Object.entries(cfg.cats).forEach(([key, def]) => {
+    const g = def.group || '_sin_grupo';
+    if(!(g in groupIndex)){ groupIndex[g] = groups.length; groups.push({ key: g, entries: [] }); }
+    groups[groupIndex[g]].entries.push([key, def]);
+  });
+
+  groups.forEach(({ key: groupKey, entries }) => {
+    const section = document.createElement('div');
+    section.className = 'stamp-group';
+
+    const title = document.createElement('div');
+    title.className = 'stamp-group-title';
+    title.textContent = GROUP_TITLES[groupKey] || '';
+    section.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'stamps';
+    entries.forEach(([key, def]) => grid.appendChild(buildStampButton(panelKey, key, def, counts[key])));
+    section.appendChild(grid);
+
+    wrap.appendChild(section);
   });
 }
 
