@@ -237,16 +237,39 @@
 
   .stamp-group{ margin-bottom:22px; }
   .stamp-group:last-child{ margin-bottom:0; }
+  .stamp-group-header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    padding-bottom:6px;
+    margin-bottom:12px;
+    border-bottom:1px solid var(--line);
+  }
   .stamp-group-title{
     font-family:'IBM Plex Mono', monospace;
     font-size:11.5px;
     letter-spacing:.1em;
     text-transform:uppercase;
     color:var(--muted);
-    padding-bottom:6px;
-    margin-bottom:12px;
-    border-bottom:1px solid var(--line);
   }
+  .group-filter-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:5px 10px;
+    border:1.5px solid var(--warn);
+    background:var(--white);
+    color:var(--warn);
+    border-radius:2px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .12s ease, color .12s ease;
+  }
+  .group-filter-btn:hover{ background:var(--warn); color:#fff; }
+  .group-filter-btn.active{ background:var(--warn); color:#fff; }
 
   /* ---------- Tabs ---------- */
   .tabs{
@@ -577,8 +600,8 @@ const state = {
   activeTab: 'normal',
   todayRef: new Date(),  // fecha de referencia para "días sin conexión"
   panels: {
-    normal:  { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false },
-    generic: { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false }
+    normal:  { rows: [], filterCategory: null, filterGroup: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false },
+    generic: { rows: [], filterCategory: null, filterGroup: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false }
   }
 };
 
@@ -924,6 +947,13 @@ function buildCruce(){
 /* =========================================================
    RENDER: STAMPS DE RESUMEN
    ========================================================= */
+function syncToolbarInputs(panelKey){
+  const suffix = PANELS[panelKey].suffix;
+  const ps = state.panels[panelKey];
+  const lic = document.getElementById(`toggleLicensedInactive-${suffix}`);
+  if(lic) lic.checked = ps.onlyLicensedInactive30;
+}
+
 function buildStampButton(panelKey, key, def, count){
   const panelState = state.panels[panelKey];
   const btn = document.createElement('button');
@@ -933,9 +963,31 @@ function buildStampButton(panelKey, key, def, count){
   btn.innerHTML = `<div class="n">${count}</div><div class="lbl">${def.label}</div>`;
   btn.addEventListener('click', () => {
     panelState.filterCategory = (panelState.filterCategory === key) ? null : key;
+    panelState.filterGroup = null;
+    panelState.onlyLicensedInactive30 = false;
+    syncToolbarInputs(panelKey);
     renderAll();
   });
   return btn;
+}
+
+function isGroupLicenseFilterActive(panelKey, groupKey){
+  const ps = state.panels[panelKey];
+  return ps.filterGroup === groupKey && ps.onlyLicensedInactive30;
+}
+
+function toggleGroupLicenseFilter(panelKey, groupKey){
+  const ps = state.panels[panelKey];
+  if(isGroupLicenseFilterActive(panelKey, groupKey)){
+    ps.filterGroup = null;
+    ps.onlyLicensedInactive30 = false;
+  } else {
+    ps.filterGroup = groupKey;
+    ps.onlyLicensedInactive30 = true;
+    ps.filterCategory = null;
+  }
+  syncToolbarInputs(panelKey);
+  renderAll();
 }
 
 function renderStamps(panelKey){
@@ -970,10 +1022,22 @@ function renderStamps(panelKey){
     const section = document.createElement('div');
     section.className = 'stamp-group';
 
+    const header = document.createElement('div');
+    header.className = 'stamp-group-header';
+
     const title = document.createElement('div');
     title.className = 'stamp-group-title';
     title.textContent = GROUP_TITLES[groupKey] || '';
-    section.appendChild(title);
+    header.appendChild(title);
+
+    const groupBtn = document.createElement('button');
+    groupBtn.type = 'button';
+    groupBtn.className = 'group-filter-btn' + (isGroupLicenseFilterActive(panelKey, groupKey) ? ' active' : '');
+    groupBtn.textContent = 'Con licencia · +30 días sin conexión';
+    groupBtn.addEventListener('click', () => toggleGroupLicenseFilter(panelKey, groupKey));
+    header.appendChild(groupBtn);
+
+    section.appendChild(header);
 
     const grid = document.createElement('div');
     grid.className = 'stamps';
@@ -987,8 +1051,9 @@ function renderStamps(panelKey){
 /* =========================================================
    RENDER: TABLA
    ========================================================= */
-function rowMatchesFilters(panelState, r){
+function rowMatchesFilters(panelState, r, cats){
   if(panelState.filterCategory && r.categoria !== panelState.filterCategory) return false;
+  if(panelState.filterGroup && !(cats && cats[r.categoria] && cats[r.categoria].group === panelState.filterGroup)) return false;
   if(panelState.onlyInactive30 && !(r.dias !== null && r.dias !== undefined && r.dias > 30)) return false;
   if(panelState.onlyLicensedInactive30 && !(r.tieneLicencia && r.dias !== null && r.dias !== undefined && r.dias > 30)) return false;
   if(panelState.search){
@@ -1052,7 +1117,7 @@ function renderTable(panelKey){
   const cfg = PANELS[panelKey];
   const panelState = state.panels[panelKey];
   const tbody = document.getElementById(`dataTableBody-${cfg.suffix}`);
-  const visible = panelState.rows.filter(r => rowMatchesFilters(panelState, r));
+  const visible = panelState.rows.filter(r => rowMatchesFilters(panelState, r, cfg.cats));
   const rowFn = ROW_RENDERERS[panelKey];
 
   if(visible.length === 0){
@@ -1079,7 +1144,7 @@ function renderAll(){
    ========================================================= */
 function exportExcel(panelKey){
   const panelState = state.panels[panelKey];
-  const visible = panelState.rows.filter(r => rowMatchesFilters(panelState, r));
+  const visible = panelState.rows.filter(r => rowMatchesFilters(panelState, r, PANELS[panelKey].cats));
 
   let data;
   if(panelKey === 'generic'){
@@ -1144,8 +1209,8 @@ document.getElementById('processBtn').addEventListener('click', (e) => {
 
   try{
     const result = buildCruce();
-    state.panels.normal  = { rows: result.normal,  filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
-    state.panels.generic = { rows: result.generic, filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
+    state.panels.normal  = { rows: result.normal,  filterCategory: null, filterGroup: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
+    state.panels.generic = { rows: result.generic, filterCategory: null, filterGroup: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
 
     ['normal','generic'].forEach(key => {
       const suffix = PANELS[key].suffix;
@@ -1182,11 +1247,13 @@ document.getElementById('processBtn').addEventListener('click', (e) => {
   if(licToggle){
     licToggle.addEventListener('change', (e) => {
       state.panels[key].onlyLicensedInactive30 = e.target.checked;
-      renderTable(key);
+      state.panels[key].filterGroup = null;
+      renderAll();
     });
   }
   document.getElementById(`clearFiltersBtn-${suffix}`).addEventListener('click', () => {
     state.panels[key].filterCategory = null;
+    state.panels[key].filterGroup = null;
     state.panels[key].search = '';
     state.panels[key].onlyInactive30 = false;
     state.panels[key].onlyLicensedInactive30 = false;
