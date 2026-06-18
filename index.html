@@ -479,7 +479,6 @@
     <div class="tabs">
       <button type="button" class="tab-btn active" data-tab="normal">Usuarios normales</button>
       <button type="button" class="tab-btn" data-tab="generic">Usuarios genéricos</button>
-      <button type="button" class="tab-btn" data-tab="retirados">Retirados con licencia</button>
     </div>
 
     <div class="panel active" id="panel-normal">
@@ -542,38 +541,6 @@
         </table>
       </div>
     </div>
-
-    <div class="panel" id="panel-retirados">
-      <p class="subtitle" style="margin-bottom:18px;">Personas retiradas cuya cuenta de Google está Suspendida (ya no pueden iniciar sesión) pero que todavía tienen una licencia asignada. Aquí no hay riesgo de seguridad, es puramente un costo que se puede liberar.</p>
-      <div class="stamps" id="stampsRow-retirados"></div>
-      <div class="toolbar">
-        <input type="text" class="search-box" id="searchBox-retirados" placeholder="Buscar por cédula, nombre o correo...">
-        <label class="toggle"><input type="checkbox" id="toggleInactive30-retirados"> Solo +30 días sin conexión</label>
-        <button class="btn-clear" id="clearFiltersBtn-retirados">Limpiar filtros</button>
-        <button class="btn-export" id="exportBtn-retirados">Exportar a Excel</button>
-      </div>
-      <div class="results-meta" id="resultsMeta-retirados" style="margin-bottom:10px;"></div>
-      <div class="table-scroll">
-        <table class="data-table" id="dataTable-retirados">
-          <thead>
-            <tr>
-              <th>Cédula</th>
-              <th>Nombre</th>
-              <th>Estado contrato</th>
-              <th>Cargo</th>
-              <th>Ubicación</th>
-              <th>Fecha retiro</th>
-              <th>Correo Google</th>
-              <th>Estado Google</th>
-              <th>Licencia</th>
-              <th>Última conexión</th>
-              <th>Categoría</th>
-            </tr>
-          </thead>
-          <tbody id="dataTableBody-retirados"></tbody>
-        </table>
-      </div>
-    </div>
   </div>
 
   <footer class="bottom">
@@ -597,9 +564,8 @@ const state = {
   activeTab: 'normal',
   todayRef: new Date(),  // fecha de referencia para "días sin conexión"
   panels: {
-    normal:    { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false },
-    generic:   { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false },
-    retirados: { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false }
+    normal:  { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false },
+    generic: { rows: [], filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false }
   }
 };
 
@@ -607,12 +573,13 @@ const state = {
    DEFINICIÓN DE CATEGORÍAS
    ========================================================= */
 const CATS_NORMAL = {
-  RETIRADO_ACTIVO:   { label: 'Retirado con cuenta activa',     color: '#BD4332' },
-  SUSPENDIDO_LIC:    { label: 'Suspendido con licencia',        color: '#9C7A33' },
-  ACTIVO_SIN_LIC:    { label: 'Activo sin licencia',            color: '#9C7A33' },
-  ACTIVO_SIN_CUENTA: { label: 'Activo sin cuenta en Google',    color: '#BD4332' },
-  SIN_IDENTIFICACION:{ label: 'Sin identificación · revisar',  color: '#6B6F76' },
-  EN_ORDEN:          { label: 'En orden',                       color: '#5C7A52' },
+  RETIRADO_ACTIVO:         { label: 'Retirado con cuenta activa',       color: '#BD4332' },
+  RETIRADO_SUSPENDIDO_LIC: { label: 'Retirado suspendido con licencia', color: '#9C7A33' },
+  SUSPENDIDO_LIC:          { label: 'Suspendido con licencia',          color: '#9C7A33' },
+  ACTIVO_SIN_LIC:          { label: 'Activo sin licencia',              color: '#9C7A33' },
+  ACTIVO_SIN_CUENTA:       { label: 'Activo sin cuenta en Google',      color: '#BD4332' },
+  SIN_IDENTIFICACION:      { label: 'Sin identificación · revisar',     color: '#6B6F76' },
+  EN_ORDEN:                { label: 'En orden',                        color: '#5C7A52' },
 };
 
 const CATS_GENERIC = {
@@ -621,14 +588,9 @@ const CATS_GENERIC = {
   GEN_EN_ORDEN:       { label: 'En orden',                 color: '#5C7A52' },
 };
 
-const CATS_RETIRADOS = {
-  RETIRADO_SUSPENDIDO_LIC: { label: 'Retirado suspendido con licencia', color: '#9C7A33' },
-};
-
 const PANELS = {
-  normal:    { cats: CATS_NORMAL,    suffix: 'normal',    colspan: 11 },
-  generic:   { cats: CATS_GENERIC,   suffix: 'generic',   colspan: 7  },
-  retirados: { cats: CATS_RETIRADOS, suffix: 'retirados', colspan: 11 }
+  normal:  { cats: CATS_NORMAL,  suffix: 'normal',  colspan: 11 },
+  generic: { cats: CATS_GENERIC, suffix: 'generic', colspan: 7  }
 };
 
 /* =========================================================
@@ -848,7 +810,6 @@ function buildCruce(){
   const claimed = new Set();
   const normal = [];
   const generic = [];
-  const retiradosLic = [];
   const ref = state.todayRef;
 
   state.googleRows.forEach(g => {
@@ -898,14 +859,12 @@ function buildCruce(){
       base.estado = 'No está en nómina';
       if(statusGoogle === 'Active'){
         base.categoria = 'RETIRADO_ACTIVO';
-        normal.push(base);
       } else if(tieneLicencia){
         base.categoria = 'RETIRADO_SUSPENDIDO_LIC';
-        retiradosLic.push(base);
       } else {
         base.categoria = 'EN_ORDEN';
-        normal.push(base);
       }
+      normal.push(base);
       return;
     }
 
@@ -919,17 +878,15 @@ function buildCruce(){
 
     if(!emp.estadoActivo){
       if(statusGoogle === 'Active'){
-        // todavía puede iniciar sesión: riesgo de seguridad, va en "usuarios normales"
+        // todavía puede iniciar sesión: riesgo de seguridad
         base.categoria = 'RETIRADO_ACTIVO';
-        normal.push(base);
       } else if(tieneLicencia){
-        // suspendido (no puede entrar) pero sigue pagando licencia: pestaña propia
+        // suspendido (no puede entrar) pero sigue pagando licencia: solo costo
         base.categoria = 'RETIRADO_SUSPENDIDO_LIC';
-        retiradosLic.push(base);
       } else {
         base.categoria = 'EN_ORDEN'; // retirado, ya sin acceso ni licencia
-        normal.push(base);
       }
+      normal.push(base);
     } else if(statusGoogle === 'Suspended' && tieneLicencia){
       base.categoria = 'SUSPENDIDO_LIC';
       normal.push(base);
@@ -953,7 +910,7 @@ function buildCruce(){
     });
   });
 
-  return { normal, generic, retiradosLic };
+  return { normal, generic };
 }
 
 /* =========================================================
@@ -1043,8 +1000,7 @@ function trGeneric(r){
 
 const ROW_RENDERERS = {
   normal:    (r) => trNormal(r, CATS_NORMAL),
-  generic:   trGeneric,
-  retirados: (r) => trNormal(r, CATS_RETIRADOS)
+  generic:   trGeneric
 };
 
 function renderTable(panelKey){
@@ -1070,7 +1026,7 @@ function escapeHtml(s){
 }
 
 function renderAll(){
-  ['normal','generic','retirados'].forEach(k => { renderStamps(k); renderTable(k); });
+  ['normal','generic'].forEach(k => { renderStamps(k); renderTable(k); });
 }
 
 /* =========================================================
@@ -1093,7 +1049,6 @@ function exportExcel(panelKey){
       'Categoría': CATS_GENERIC[r.categoria].label
     }));
   } else {
-    const cats = panelKey === 'retirados' ? CATS_RETIRADOS : CATS_NORMAL;
     data = visible.map(r => ({
       'Cédula': r.cedula,
       'Nombre': r.nombre,
@@ -1106,12 +1061,12 @@ function exportExcel(panelKey){
       'Licencia': r.tieneLicencia ? 'Sí' : 'No',
       'Última conexión': formatLastSignIn(r),
       'Días sin conexión': r.dias === Infinity ? 'Nunca' : (r.dias ?? ''),
-      'Categoría': cats[r.categoria].label
+      'Categoría': CATS_NORMAL[r.categoria].label
     }));
   }
 
-  const sheetNames = { normal: 'Usuarios normales', generic: 'Usuarios genericos', retirados: 'Retirados con licencia' };
-  const sufijos = { normal: 'normales', generic: 'genericos', retirados: 'retirados_licencia' };
+  const sheetNames = { normal: 'Usuarios normales', generic: 'Usuarios genericos' };
+  const sufijos = { normal: 'normales', generic: 'genericos' };
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -1144,11 +1099,10 @@ document.getElementById('processBtn').addEventListener('click', (e) => {
 
   try{
     const result = buildCruce();
-    state.panels.normal    = { rows: result.normal,       filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
-    state.panels.generic   = { rows: result.generic,      filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
-    state.panels.retirados = { rows: result.retiradosLic, filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
+    state.panels.normal  = { rows: result.normal,  filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
+    state.panels.generic = { rows: result.generic, filterCategory: null, search: '', onlyInactive30: false, onlyLicensedInactive30: false };
 
-    ['normal','generic','retirados'].forEach(key => {
+    ['normal','generic'].forEach(key => {
       const suffix = PANELS[key].suffix;
       document.getElementById(`searchBox-${suffix}`).value = '';
       document.getElementById(`toggleInactive30-${suffix}`).checked = false;
@@ -1158,9 +1112,9 @@ document.getElementById('processBtn').addEventListener('click', (e) => {
 
     document.getElementById('results').classList.add('show');
     document.getElementById('resultsMetaGlobal').textContent =
-      `${result.normal.length} usuarios normales · ${result.generic.length} usuarios genéricos · ${result.retiradosLic.length} retirados con licencia`;
+      `${result.normal.length} usuarios normales · ${result.generic.length} usuarios genéricos`;
     document.getElementById('footerStamp').textContent =
-      `PROCESADO · ${result.normal.length} NORMALES · ${result.generic.length} GENÉRICOS · ${result.retiradosLic.length} RETIRADOS CON LICENCIA`;
+      `PROCESADO · ${result.normal.length} NORMALES · ${result.generic.length} GENÉRICOS`;
 
     renderAll();
     document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
@@ -1169,7 +1123,7 @@ document.getElementById('processBtn').addEventListener('click', (e) => {
   }
 });
 
-['normal','generic','retirados'].forEach(key => {
+['normal','generic'].forEach(key => {
   const suffix = PANELS[key].suffix;
   document.getElementById(`searchBox-${suffix}`).addEventListener('input', (e) => {
     state.panels[key].search = e.target.value;
