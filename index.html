@@ -551,7 +551,7 @@
 
     <div class="panel" id="panel-generic">
       <p class="subtitle" style="margin-bottom:18px;">Cuentas de cargo (practicante, auxiliar, analista, etc.) que no se cruzan contra la base de empleados por cédula. Aquí puedes ver su propio estado de licencia y conexión.</p>
-      <div class="stamps" id="stampsRow-generic"></div>
+      <div id="stampsRow-generic"></div>
       <div class="toolbar">
         <input type="text" class="search-box" id="searchBox-generic" placeholder="Buscar por correo o cargo...">
         <label class="toggle"><input type="checkbox" id="toggleInactive30-generic"> Solo +30 días sin conexión</label>
@@ -625,7 +625,7 @@ const CATS_NORMAL = {
 };
 
 const GROUP_TITLES = {
-  sin_registro: 'Empleados sin registro en nómina',
+  sin_registro: 'Retirados / sin registro en nómina',
   con_registro: 'Empleado con registro en nómina'
 };
 
@@ -990,6 +990,15 @@ function toggleGroupLicenseFilter(panelKey, groupKey){
   renderAll();
 }
 
+function toggleLicenseInactiveFilter(panelKey){
+  const ps = state.panels[panelKey];
+  ps.onlyLicensedInactive30 = !ps.onlyLicensedInactive30;
+  ps.filterCategory = null;
+  ps.filterGroup = null;
+  syncToolbarInputs(panelKey);
+  renderAll();
+}
+
 function renderStamps(panelKey){
   const cfg = PANELS[panelKey];
   const panelState = state.panels[panelKey];
@@ -1003,9 +1012,29 @@ function renderStamps(panelKey){
   const hasGroups = Object.values(cfg.cats).some(def => def.group);
 
   if(!hasGroups){
+    const header = document.createElement('div');
+    header.className = 'stamp-group-header';
+
+    const title = document.createElement('div');
+    title.className = 'stamp-group-title';
+    title.textContent = 'Cuentas genéricas';
+    header.appendChild(title);
+
+    const groupBtn = document.createElement('button');
+    groupBtn.type = 'button';
+    groupBtn.className = 'group-filter-btn' + (panelState.onlyLicensedInactive30 ? ' active' : '');
+    groupBtn.textContent = 'Con licencia · +30 días sin conexión';
+    groupBtn.addEventListener('click', () => toggleLicenseInactiveFilter(panelKey));
+    header.appendChild(groupBtn);
+
+    wrap.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'stamps';
     Object.entries(cfg.cats).forEach(([key, def]) => {
-      wrap.appendChild(buildStampButton(panelKey, key, def, counts[key]));
+      grid.appendChild(buildStampButton(panelKey, key, def, counts[key]));
     });
+    wrap.appendChild(grid);
     return;
   }
 
@@ -1017,6 +1046,7 @@ function renderStamps(panelKey){
     if(!(g in groupIndex)){ groupIndex[g] = groups.length; groups.push({ key: g, entries: [] }); }
     groups[groupIndex[g]].entries.push([key, def]);
   });
+
 
   groups.forEach(({ key: groupKey, entries }) => {
     const section = document.createElement('div');
