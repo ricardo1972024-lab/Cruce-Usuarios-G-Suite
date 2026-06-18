@@ -586,13 +586,19 @@ const state = {
    DEFINICIÓN DE CATEGORÍAS
    ========================================================= */
 const CATS_NORMAL = {
-  RETIRADO_ACTIVO:         { label: 'Retirado con cuenta activa',       color: '#BD4332', group: 'sin_registro' },
-  RETIRADO_SUSPENDIDO_LIC: { label: 'Retirado suspendido con licencia', color: '#9C7A33', group: 'sin_registro' },
-  SUSPENDIDO_LIC:          { label: 'Suspendido con licencia',          color: '#9C7A33', group: 'con_registro' },
-  ACTIVO_SIN_LIC:          { label: 'Activo sin licencia',              color: '#9C7A33', group: 'con_registro' },
-  ACTIVO_SIN_CUENTA:       { label: 'Activo sin cuenta en Google',      color: '#BD4332', group: 'con_registro' },
-  SIN_IDENTIFICACION:      { label: 'Sin identificación · revisar',     color: '#6B6F76', group: 'con_registro' },
-  EN_ORDEN:                { label: 'En orden',                        color: '#5C7A52', group: 'con_registro' },
+  // --- Retirado (o no encontrado en base, tratado como retirado): 4 combinaciones ---
+  RET_ACTIVE_LIC:      { label: 'Retirado · cuenta activa · con licencia',     color: '#BD4332', group: 'sin_registro' },
+  RET_ACTIVE_NOLIC:    { label: 'Retirado · cuenta activa · sin licencia',     color: '#BD4332', group: 'sin_registro' },
+  RET_SUSPENDED_LIC:   { label: 'Retirado · cuenta suspendida · con licencia', color: '#9C7A33', group: 'sin_registro' },
+  RET_SUSPENDED_NOLIC: { label: 'Retirado · cuenta suspendida · sin licencia', color: '#5C7A52', group: 'sin_registro' },
+  // --- Activo: 4 combinaciones ---
+  ACT_ACTIVE_LIC:      { label: 'Activo · cuenta activa · con licencia',      color: '#5C7A52', group: 'con_registro' },
+  ACT_ACTIVE_NOLIC:    { label: 'Activo · cuenta activa · sin licencia',      color: '#9C7A33', group: 'con_registro' },
+  ACT_SUSPENDED_LIC:   { label: 'Activo · cuenta suspendida · con licencia',  color: '#9C7A33', group: 'con_registro' },
+  ACT_SUSPENDED_NOLIC: { label: 'Activo · cuenta suspendida · sin licencia',  color: '#9C7A33', group: 'con_registro' },
+  // --- Casos especiales (sin cuenta cruzada que comparar) ---
+  ACTIVO_SIN_CUENTA:   { label: 'Activo sin cuenta en Google',     color: '#BD4332', group: 'con_registro' },
+  SIN_IDENTIFICACION:  { label: 'Sin identificación · revisar',    color: '#6B6F76', group: 'con_registro' },
 };
 
 const GROUP_TITLES = {
@@ -817,6 +823,16 @@ function diasSinConexion(lastSignIn, ref){
   return Math.floor(ms / 86400000);
 }
 
+function categorizeMatched(estaActivo, statusGoogle, tieneLicencia){
+  const cuentaActiva = statusGoogle === 'Active';
+  if(estaActivo){
+    if(cuentaActiva) return tieneLicencia ? 'ACT_ACTIVE_LIC' : 'ACT_ACTIVE_NOLIC';
+    return tieneLicencia ? 'ACT_SUSPENDED_LIC' : 'ACT_SUSPENDED_NOLIC';
+  }
+  if(cuentaActiva) return tieneLicencia ? 'RET_ACTIVE_LIC' : 'RET_ACTIVE_NOLIC';
+  return tieneLicencia ? 'RET_SUSPENDED_LIC' : 'RET_SUSPENDED_NOLIC';
+}
+
 function categorizeGenerica(statusGoogle, tieneLicencia){
   if(statusGoogle === 'Suspended' && tieneLicencia) return 'GEN_SUSPENDIDO_LIC';
   if(statusGoogle === 'Active' && !tieneLicencia) return 'GEN_ACTIVO_SIN_LIC';
@@ -875,13 +891,7 @@ function buildCruce(){
       // a un retirado), aunque no sabemos cargo, ubicación ni fecha exacta.
       base.cedula = id;
       base.estado = 'No está en nómina';
-      if(statusGoogle === 'Active'){
-        base.categoria = 'RETIRADO_ACTIVO';
-      } else if(tieneLicencia){
-        base.categoria = 'RETIRADO_SUSPENDIDO_LIC';
-      } else {
-        base.categoria = 'EN_ORDEN';
-      }
+      base.categoria = categorizeMatched(false, statusGoogle, tieneLicencia);
       normal.push(base);
       return;
     }
@@ -893,28 +903,8 @@ function buildCruce(){
     base.cargo = emp.cargo;
     base.ubicacion = emp.ubicacion;
     base.fechaRetiro = emp.fechaRetiro;
-
-    if(!emp.estadoActivo){
-      if(statusGoogle === 'Active'){
-        // todavía puede iniciar sesión: riesgo de seguridad
-        base.categoria = 'RETIRADO_ACTIVO';
-      } else if(tieneLicencia){
-        // suspendido (no puede entrar) pero sigue pagando licencia: solo costo
-        base.categoria = 'RETIRADO_SUSPENDIDO_LIC';
-      } else {
-        base.categoria = 'EN_ORDEN'; // retirado, ya sin acceso ni licencia
-      }
-      normal.push(base);
-    } else if(statusGoogle === 'Suspended' && tieneLicencia){
-      base.categoria = 'SUSPENDIDO_LIC';
-      normal.push(base);
-    } else if(!tieneLicencia){
-      base.categoria = 'ACTIVO_SIN_LIC';
-      normal.push(base);
-    } else {
-      base.categoria = 'EN_ORDEN';
-      normal.push(base);
-    }
+    base.categoria = categorizeMatched(emp.estadoActivo, statusGoogle, tieneLicencia);
+    normal.push(base);
   });
 
   // empleados activos que no aparecieron en ninguna cuenta de Google
