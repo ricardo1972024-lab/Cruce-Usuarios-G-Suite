@@ -692,7 +692,8 @@ const CATS_NORMAL = {
   ACT_SUSPENDED_NOLIC: { label: 'Activo · cuenta suspendida · sin licencia',  color: '#9C7A33', group: 'con_registro' },
   // --- Casos especiales (sin cuenta cruzada que comparar) ---
   ACTIVO_SIN_CUENTA:   { label: 'Activo sin cuenta en Google',     color: '#BD4332', group: 'con_registro' },
-  SIN_IDENTIFICACION:  { label: 'Sin identificación · revisar',    color: '#6B6F76', group: 'con_registro' },
+  SIN_ID_LIC:          { label: 'Sin identificación · con licencia · revisar', color: '#BD4332', group: 'con_registro' },
+  SIN_ID_NOLIC:        { label: 'Sin identificación · sin licencia · revisar', color: '#6B6F76', group: 'con_registro' },
 };
 
 const GROUP_TITLES = {
@@ -702,9 +703,10 @@ const GROUP_TITLES = {
 };
 
 const CATS_GENERIC = {
-  GEN_SUSPENDIDO_LIC: { label: 'Suspendida con licencia',  color: '#9C7A33' },
-  GEN_ACTIVO_SIN_LIC: { label: 'Activa sin licencia',      color: '#9C7A33' },
-  GEN_EN_ORDEN:       { label: 'En orden',                 color: '#5C7A52' },
+  GEN_ACTIVE_LIC:      { label: 'Activa · con licencia',      color: '#5C7A52' },
+  GEN_ACTIVE_NOLIC:    { label: 'Activa · sin licencia',      color: '#9C7A33' },
+  GEN_SUSPENDED_LIC:   { label: 'Suspendida · con licencia',  color: '#9C7A33' },
+  GEN_SUSPENDED_NOLIC: { label: 'Suspendida · sin licencia',  color: '#5B6058' },
 };
 
 const CATS_AD = {
@@ -772,7 +774,7 @@ function parseGoogleDateTime(v){
   return isNaN(d) ? null : d;
 }
 
-const GENERIC_RE = /^(administrador|administracion|practicante|auxiliar|analista|coordinador|coordinadora|capacitacion|prueba|inspector|auditoria|aprendiz|asesor|supervisor|seleccion|atraccion|desarrollo|celular|sala|despacho|tat\d|tat\.|almacen|foodservice|operador|biomasa)/i;
+const GENERIC_RE = /^(administrador|administracion|practicante|pract\.|auxiliar|analista|coordinador|coordinadora|capacitacion|prueba|inspector|auditoria|aprendiz|asesor|supervisor|seleccion|atraccion|desarrollo|celular|sala|despacho|tat\d|tat\.|almacen|foodservice|operador|biomasa)/i;
 
 function isGenericAccount(row){
   const cc = cleanStr(row['Cost Center']);
@@ -983,9 +985,9 @@ function categorizeMatched(estaActivo, statusGoogle, tieneLicencia){
 }
 
 function categorizeGenerica(statusGoogle, tieneLicencia){
-  if(statusGoogle === 'Suspended' && tieneLicencia) return 'GEN_SUSPENDIDO_LIC';
-  if(statusGoogle === 'Active' && !tieneLicencia) return 'GEN_ACTIVO_SIN_LIC';
-  return 'GEN_EN_ORDEN';
+  const activa = statusGoogle === 'Active';
+  if(activa)  return tieneLicencia ? 'GEN_ACTIVE_LIC'    : 'GEN_ACTIVE_NOLIC';
+  return             tieneLicencia ? 'GEN_SUSPENDED_LIC'  : 'GEN_SUSPENDED_NOLIC';
 }
 
 function buildCruce(){
@@ -1027,7 +1029,7 @@ function buildCruce(){
       // sin ninguna cédula: no hay forma de confirmar si alguna vez fue empleado
       base.cedula = '';
       base.estado = '—';
-      base.categoria = 'SIN_IDENTIFICACION';
+      base.categoria = tieneLicencia ? 'SIN_ID_LIC' : 'SIN_ID_NOLIC';
       normal.push(base);
       return;
     }
